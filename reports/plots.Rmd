@@ -1,0 +1,66 @@
+---
+title: "Gossip Simulator Plots"
+author: "Kadir Korkmaz"
+date: "9/10/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data
+```{r, echo=FALSE}
+
+library(jsonlite)
+
+#https://github.com/jeroen/jsonlite/issues/59
+gossip_df <- stream_in( file("../cmd/simulation.out",open="r") )
+head(gossip_df)
+
+
+gossip_df$FailurePercent <- (gossip_df$FailureCount * 100) / gossip_df$ExperimentCount / 100
+#gossip_df$AverageDeliveryPercent <- gossip_df$AverageDeliveryPercent * 100
+```
+
+\newpage
+## Plots
+```{r, echo=FALSE, fig.width=5, fig.height=6}
+
+library(dplyr)
+library(reshape)
+library(ggplot2)
+
+#https://github.com/jeroen/jsonlite/issues/59
+filtered_df <- gossip_df %>% select(ExperimentType, FaultyNodePercent, AverageDeliveryPercent,FailurePercent, AverageReceivedCount, AverageForwardCount )
+head(filtered_df) 
+
+
+
+melted_df <- melt(filtered_df, id=c("ExperimentType","FaultyNodePercent"))
+head(melted_df)
+
+p <- ggplot(melted_df, aes(x=FaultyNodePercent, y=value,  group=ExperimentType, color=ExperimentType, )) +
+      geom_line()+
+      #geom_point()+
+      expand_limits(y = 0) +
+      labs(color='Type') +
+      theme_bw()+
+      theme(legend.position="top") +
+      ylab(NULL) +
+      xlab("Faulty Node Percentage") +
+      theme(strip.background = element_blank(), # remove the background
+          strip.placement = "outside", legend.title=element_text(size=8), legend.margin=margin(0,-0,-6,0))
+
+#, switch = "y"
+p <- p + facet_grid(variable ~ ., scales = "free_y" , labeller = as_labeller(
+      c(AverageDeliveryPercent = "Delivery Percent.", FailurePercent = "Dissemination Failure", AverageReceivedCount= "Received Chunk Count", AverageForwardCount = "Delivered Chunk Count"))
+  ) + theme(plot.margin = margin(0,0,0,0, "cm"))
+
+p
+
+#ggsave("report.pdf", p)
+
+
+
+```
