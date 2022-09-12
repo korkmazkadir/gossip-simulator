@@ -28,11 +28,37 @@ fault_percents=(5 10 15 20 25 30 35 40 45 50 55 60 65 70 75 80 85 90)
 #for i in "${fault_percents[@]}"
 for i in {0..100}
 do
-    fault=$(jq -n ${i}/100)
-    echo -n "Fanout ${fanout} Fault ${fault} => " 
-    ./cmd -type=${type} -d=${fanout} -f=${fault} -e=${batch_size} >> simulation.out
+
+    type="ida"
+
+    start=`date +%s`
+
+        fault=$(jq -n ${i}/100) 
+        echo -n "Fanout ${fanout} Fault ${fault} => "
+        ./cmd -type=${type} -d=${fanout} -f=${fault} -e=${batch_size} >> simulation.out
+
+    end=`date +%s`
+    elapsed_time=$((end-start))
+
+    echo  "ElapsedTime: ${elapsed_time}"
+
+    type="classic"
+
+    start=`date +%s`
+
+        fault=$(jq -n ${i}/100) 
+        echo -n "Fanout ${fanout} Fault ${fault} => "
+        ./cmd -type=${type} -d=${fanout} -f=${fault} -e=${batch_size} >> simulation.out
+
+    end=`date +%s`
+    elapsed_time=$((end-start))
+
+    echo  "ElapsedTime: ${elapsed_time}"
+
 done
 
+
+exit
 
 type="classic"
 
@@ -41,7 +67,14 @@ echo "------${type}------"
 #for i in "${fault_percents[@]}"
 for i in {0..100}
 do
-    fault=$(jq -n ${i}/100)
-    echo -n "Fanout ${fanout} Fault ${fault} => " 
-    ./cmd -type=${type} -d=${fanout} -f=${fault} -e=${batch_size} >> simulation.out
+    start=`date +%s`
+
+        fault=$(jq -n ${i}/100) 
+        echo -n "Fanout ${fanout} Fault ${fault} => "
+        ./cmd -type=${type} -d=${fanout} -f=${fault} -e=${batch_size} >> simulation.out
+
+    end=`date +%s`
+    elapsed_time=$((end-start))
+
+    echo  "ElapsedTime: ${elapsed_time}"
 done

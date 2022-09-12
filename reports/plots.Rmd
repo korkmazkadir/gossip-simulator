@@ -15,11 +15,13 @@ knitr::opts_chunk$set(echo = TRUE)
 library(jsonlite)
 
 #https://github.com/jeroen/jsonlite/issues/59
-gossip_df <- stream_in( file("../cmd/simulation.out",open="r") )
-head(gossip_df)
 
+gossip_df <- stream_in( file("../cmd/simulation.out",open="r") )
+#gossip_df <- stream_in( file("../cmd/simulation_fanout8_datachunk48_experiment_200.out",open="r") )
 
 gossip_df$FailurePercent <- (gossip_df$FailureCount * 100) / gossip_df$ExperimentCount / 100
+
+
 #gossip_df$AverageDeliveryPercent <- gossip_df$AverageDeliveryPercent * 100
 ```
 
@@ -33,12 +35,8 @@ library(ggplot2)
 
 #https://github.com/jeroen/jsonlite/issues/59
 filtered_df <- gossip_df %>% select(ExperimentType, FaultyNodePercent, AverageDeliveryPercent,FailurePercent, AverageReceivedCount, AverageForwardCount )
-head(filtered_df) 
-
-
 
 melted_df <- melt(filtered_df, id=c("ExperimentType","FaultyNodePercent"))
-head(melted_df)
 
 p <- ggplot(melted_df, aes(x=FaultyNodePercent, y=value,  group=ExperimentType, color=ExperimentType, )) +
       geom_line()+
@@ -48,7 +46,7 @@ p <- ggplot(melted_df, aes(x=FaultyNodePercent, y=value,  group=ExperimentType, 
       theme_bw()+
       theme(legend.position="top") +
       ylab(NULL) +
-      xlab("Faulty Node Percentage") +
+      xlab("Fraction of Faulty Nodes") +
       theme(strip.background = element_blank(), # remove the background
           strip.placement = "outside", legend.title=element_text(size=8), legend.margin=margin(0,-0,-6,0))
 
@@ -62,5 +60,43 @@ p
 #ggsave("report.pdf", p)
 
 
+```
+
+\newpage
+## Delivery Percent Diff
+```{r, echo=FALSE, fig.width=5, fig.height=6}
+
+library(dplyr)
+library(ggplot2)
+
+
+ida_df <- gossip_df %>%  select(ExperimentType, FaultyNodePercent, AverageDeliveryPercent, FailurePercent) %>% filter(ExperimentType == "ida") 
+classic_df <- gossip_df %>%  select(ExperimentType, FaultyNodePercent, AverageDeliveryPercent, FailurePercent) %>% filter(ExperimentType == "classic")
+
+joined_df <- inner_join(ida_df, classic_df, by="FaultyNodePercent")
+
+joined_df$DeliveryDiff <- joined_df$AverageDeliveryPercent.x -  joined_df$AverageDeliveryPercent.y
+
+joined_df$FailureDiff <- joined_df$FailurePercent.x -  joined_df$FailurePercent.y
+
+ggplot(data=joined_df, aes(x=FaultyNodePercent, y=DeliveryDiff, group=1)) +
+  geom_line()
 
 ```
+
+
+
+
+\newpage
+## Failure Percent Diff
+```{r, echo=FALSE, fig.width=5, fig.height=6}
+
+library(dplyr)
+library(ggplot2)
+
+ggplot(data=joined_df, aes(x=FaultyNodePercent, y=FailureDiff, group=1)) +
+  geom_line()
+```
+
+
+

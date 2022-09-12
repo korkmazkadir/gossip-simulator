@@ -21,10 +21,8 @@ func main() {
 	fanout := *fanOutF
 	faultPercent := *faultF
 
-	//dataChunkCount := 48
-	//parityChunkCount := 80
-	dataChunkCount := 6
-	parityChunkCount := 10
+	dataChunkCount := 96
+	parityChunkCount := 160
 
 	//log.Println(*dissmeinationType)
 
@@ -33,8 +31,6 @@ func main() {
 	experimentCount := *experimentCountF
 
 	for i := 0; i < experimentCount; i++ {
-
-		//start := time.Now()
 
 		system := simulator.NewSystem(nodeCount, fanout, faultPercent)
 		disseminator := simulator.NewDisseminator(system)
@@ -51,9 +47,6 @@ func main() {
 		}
 
 		stats = append(stats, stat)
-
-		//elapsed := time.Since(start)
-		//log.Printf("[%d/%d] took %s", i, experimentCount, elapsed)
 
 		//log.Printf("----> Message Delivery Count %d\n", stat.MessageDeliveryCount)
 
