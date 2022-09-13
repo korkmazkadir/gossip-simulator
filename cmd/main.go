@@ -31,37 +31,35 @@ func main() {
 
 	experimentCount := *experimentCountF
 
-	stats := make(chan simulator.DisseminationStats, experimentCount+1)
+	stats := make([]simulator.DisseminationStats, experimentCount)
 
-	var sem = make(chan int, 32)
 	var wg sync.WaitGroup
 
-	for i := 0; i < experimentCount; i++ {
+	for j := 0; j < 10; j++ {
 
 		wg.Add(1)
-		sem <- 1
-		go func() {
+		go func(index int) {
 
-			system := simulator.NewSystem(nodeCount, fanout, faultPercent)
-			disseminator := simulator.NewDisseminator(system)
+			for i := 0; i < experimentCount; i++ {
+				system := simulator.NewSystem(nodeCount, fanout, faultPercent)
+				disseminator := simulator.NewDisseminator(system)
 
-			var stat simulator.DisseminationStats
+				var stat simulator.DisseminationStats
 
-			switch *dissmeinationType {
-			case "classic":
-				stat = disseminator.DisseminateClassic(dataChunkCount)
-			case "ida":
-				stat = disseminator.DisseminateIDA(dataChunkCount, parityChunkCount)
-			default:
-				panic(fmt.Errorf("unknow dissemination type %s", *dissmeinationType))
+				switch *dissmeinationType {
+				case "classic":
+					stat = disseminator.DisseminateClassic(dataChunkCount)
+				case "ida":
+					stat = disseminator.DisseminateIDA(dataChunkCount, parityChunkCount)
+				default:
+					panic(fmt.Errorf("unknow dissemination type %s", *dissmeinationType))
+				}
+
+				stats[(index*(experimentCount/10))+i] = stat
 			}
 
-			stats <- stat
-
-			<-sem
 			wg.Done()
-		}()
-
+		}(j)
 	}
 
 	wg.Wait()
@@ -75,7 +73,7 @@ func main() {
 
 	faultyNodeCount := int(float64(nodeCount) * faultPercent)
 
-	for stat := range stats {
+	for _, stat := range stats {
 		totalRoundCount += stat.Round
 		totalDeliveryPercent += (float64(stat.MessageDeliveryCount) / float64(nodeCount))
 		totalForwardCount += float64(stat.ForwardedChunkCount) / float64(nodeCount-faultyNodeCount)
