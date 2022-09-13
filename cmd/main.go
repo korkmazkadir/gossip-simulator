@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/korkmazkadir/gossip-simulator/simulator"
 )
@@ -28,31 +29,42 @@ func main() {
 
 	//log.Println(*dissmeinationType)
 
-	var stats []simulator.DisseminationStats
-
 	experimentCount := *experimentCountF
+
+	stats := make(chan simulator.DisseminationStats, experimentCount)
+
+	var sem = make(chan int, 16)
+	var wg sync.WaitGroup
 
 	for i := 0; i < experimentCount; i++ {
 
-		system := simulator.NewSystem(nodeCount, fanout, faultPercent)
-		disseminator := simulator.NewDisseminator(system)
+		wg.Add(1)
+		sem <- 1
+		go func() {
 
-		var stat simulator.DisseminationStats
+			system := simulator.NewSystem(nodeCount, fanout, faultPercent)
+			disseminator := simulator.NewDisseminator(system)
 
-		switch *dissmeinationType {
-		case "classic":
-			stat = disseminator.DisseminateClassic(dataChunkCount)
-		case "ida":
-			stat = disseminator.DisseminateIDA(dataChunkCount, parityChunkCount)
-		default:
-			panic(fmt.Errorf("unknow dissemination type %s", *dissmeinationType))
-		}
+			var stat simulator.DisseminationStats
 
-		stats = append(stats, stat)
+			switch *dissmeinationType {
+			case "classic":
+				stat = disseminator.DisseminateClassic(dataChunkCount)
+			case "ida":
+				stat = disseminator.DisseminateIDA(dataChunkCount, parityChunkCount)
+			default:
+				panic(fmt.Errorf("unknow dissemination type %s", *dissmeinationType))
+			}
 
-		//log.Printf("----> Message Delivery Count %d\n", stat.MessageDeliveryCount)
+			stats <- stat
+
+			<-sem
+			wg.Done()
+		}()
 
 	}
+
+	wg.Wait()
 
 	totalRoundCount := 0
 	totalDeliveryPercent := 0.0
@@ -63,13 +75,13 @@ func main() {
 
 	faultyNodeCount := int(float64(nodeCount) * faultPercent)
 
-	for i := range stats {
-		totalRoundCount += stats[i].Round
-		totalDeliveryPercent += (float64(stats[i].MessageDeliveryCount) / float64(nodeCount))
-		totalForwardCount += float64(stats[i].ForwardedChunkCount) / float64(nodeCount-faultyNodeCount)
-		totalReceivedCount += float64(stats[i].ReceivedChunkCount) / float64(nodeCount)
+	for stat := range stats {
+		totalRoundCount += stat.Round
+		totalDeliveryPercent += (float64(stat.MessageDeliveryCount) / float64(nodeCount))
+		totalForwardCount += float64(stat.ForwardedChunkCount) / float64(nodeCount-faultyNodeCount)
+		totalReceivedCount += float64(stat.ReceivedChunkCount) / float64(nodeCount)
 
-		if stats[i].MessageDeliveryCount == 0 {
+		if stat.MessageDeliveryCount == 0 {
 			failureCount++
 		}
 
