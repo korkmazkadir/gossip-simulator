@@ -31,9 +31,9 @@ func main() {
 
 	experimentCount := *experimentCountF
 
-	stats := make(chan simulator.DisseminationStats, experimentCount)
+	stats := make(chan simulator.DisseminationStats, experimentCount+1)
 
-	var sem = make(chan int, 16)
+	var sem = make(chan int, 32)
 	var wg sync.WaitGroup
 
 	for i := 0; i < experimentCount; i++ {
