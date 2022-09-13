@@ -40,7 +40,7 @@ func main() {
 		wg.Add(1)
 		go func(index int) {
 
-			for i := 0; i < experimentCount; i++ {
+			for i := 0; i < experimentCount/10; i++ {
 				system := simulator.NewSystem(nodeCount, fanout, faultPercent)
 				disseminator := simulator.NewDisseminator(system)
 
