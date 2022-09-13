@@ -1,8 +1,8 @@
 package simulator
 
 type stats struct {
-	receivedMessageCount int
-
+	receivedMessageCount  int
+	deliveredMessageCount int
 	forwardedMessageCount int
 }
 
@@ -53,30 +53,27 @@ func (n *Node) Deliver() {
 	for _, message := range n.inbox {
 		// checks a message is already delivered
 		_, ok := n.delivered[message.chunkIndex]
-		if !ok {
-
-			if len(n.delivered) == message.dataChunkCount {
-				// if a node has delivered enough message to reconstruct the original message
-				// it finishes the dissemination
-				n.isFinished = true
-			} else {
-				// the message is marked as delivered
-				n.delivered[message.chunkIndex] = message
-				n.deliveredSlice = append(n.deliveredSlice, message)
-
-				// the message is put into outbox to be forwarded if it is not faulty
-				if !n.isFaulty {
-					n.outbox = append(n.outbox, message)
-				}
-
-				// this is for classic
-				if len(n.delivered) == message.dataChunkCount {
-					n.isFinished = true
-				}
-
-			}
-
+		if ok {
+			// message is already delivered no need to do anything
+			continue
 		}
+
+		if len(n.delivered) >= message.dataChunkCount {
+			panic("illegal state")
+		}
+
+		// the message is marked as delivered
+		n.delivered[message.chunkIndex] = message
+		n.deliveredSlice = append(n.deliveredSlice, message)
+		n.outbox = append(n.outbox, message)
+		n.deliveredMessageCount++
+
+		if len(n.delivered) == message.dataChunkCount {
+			//log.Println(len(n.delivered))
+			n.isFinished = true
+			break
+		}
+
 	}
 
 	// keeps received message count
@@ -89,8 +86,9 @@ func (n *Node) Deliver() {
 // Forward returns forwarded message count
 func (n *Node) Forward() int {
 
-	if n.isFaulty {
-		// faulty nodes does not forward a message
+	// faulty nodes do not forward messages
+	if n.isFaulty || (n.isFinished && len(n.outbox) == 0) {
+		n.outbox = nil
 		return 0
 	}
 
@@ -104,6 +102,7 @@ func (n *Node) Forward() int {
 			// messages put into the inbox so they will wait to be delivered
 			peer.inbox = append(peer.inbox, message)
 		}
+
 		forwardedMessageCount++
 	}
 

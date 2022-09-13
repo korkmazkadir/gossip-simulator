@@ -16,18 +16,18 @@ library(jsonlite)
 
 #https://github.com/jeroen/jsonlite/issues/59
 
-gossip_df <- stream_in( file("../cmd/simulation.out",open="r") )
+gossip_df <- stream_in( file("../cmd/sim_fanout8_datachunk48_experiment500.out",open="r") )
 #gossip_df <- stream_in( file("../cmd/simulation_fanout8_datachunk48_experiment_200.out",open="r") )
 
-gossip_df$FailurePercent <- (gossip_df$FailureCount * 100) / gossip_df$ExperimentCount / 100
+gossip_df$FailurePercent <- (gossip_df$FailureCount * 100) / gossip_df$ExperimentCount #/ 100
 
 
-#gossip_df$AverageDeliveryPercent <- gossip_df$AverageDeliveryPercent * 100
+gossip_df$AverageDeliveryPercent <- gossip_df$AverageDeliveryPercent * 100
 ```
 
 \newpage
 ## Plots
-```{r, echo=FALSE, fig.width=5, fig.height=6}
+```{r, echo=FALSE, fig.width=5, fig.height=7}
 
 library(dplyr)
 library(reshape)
@@ -36,7 +36,14 @@ library(ggplot2)
 #https://github.com/jeroen/jsonlite/issues/59
 filtered_df <- gossip_df %>% select(ExperimentType, FaultyNodePercent, AverageDeliveryPercent,FailurePercent, AverageReceivedCount, AverageForwardCount )
 
+filtered_df <- filtered_df %>% mutate(ExperimentType = replace(ExperimentType, ExperimentType == "ida", "IDA-Gossip"))
+filtered_df <- filtered_df %>% mutate(ExperimentType = replace(ExperimentType, ExperimentType == "classic", "Classic"))
+
+
 melted_df <- melt(filtered_df, id=c("ExperimentType","FaultyNodePercent"))
+
+
+
 
 p <- ggplot(melted_df, aes(x=FaultyNodePercent, y=value,  group=ExperimentType, color=ExperimentType, )) +
       geom_line()+
@@ -52,12 +59,12 @@ p <- ggplot(melted_df, aes(x=FaultyNodePercent, y=value,  group=ExperimentType, 
 
 #, switch = "y"
 p <- p + facet_grid(variable ~ ., scales = "free_y" , labeller = as_labeller(
-      c(AverageDeliveryPercent = "Delivery Percent.", FailurePercent = "Dissemination Failure", AverageReceivedCount= "Received Chunk Count", AverageForwardCount = "Delivered Chunk Count"))
+      c(AverageDeliveryPercent = "Avg. Delivery Percent", FailurePercent = "Avg. Diss. Failure", AverageReceivedCount= "Avg. Rec. Chunk Count", AverageForwardCount = "Avg. Deliv. Chunk Count"))
   ) + theme(plot.margin = margin(0,0,0,0, "cm"))
 
 p
 
-#ggsave("report.pdf", p)
+ggsave("simulation-results.pdf", p)
 
 
 ```

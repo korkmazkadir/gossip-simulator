@@ -5,7 +5,12 @@ type="classic"
 
 fanout=8
 
-batch_size=100
+batch_size=500
+
+data_chunk_count=48
+
+parity_chunk_count=80
+
 
 # echo "${type}"
 
@@ -22,11 +27,16 @@ type="ida"
 
 echo "------${type}------"
 
-fault_percents=(5 10 15 20 25 30 35 40 45 50 55 60 65 70 75 80 85 90)
+#fault_percents=(5 10 15 20 25 30 35 40 45 50 55 60 65 70 75 80 85 90)
 #fault_percents=(45)
-
 #for i in "${fault_percents[@]}"
-for i in {0..100}
+
+
+output_file="sim_fanout${fanout}_datachunk${data_chunk_count}_experiment${batch_size}.out"
+
+echo "Output file: ${output_file}"
+
+for i in {0..99}
 do
 
     type="ida"
@@ -35,7 +45,14 @@ do
 
         fault=$(jq -n ${i}/100) 
         echo -n "Fanout ${fanout} Fault ${fault} => "
-        ./cmd -type=${type} -d=${fanout} -f=${fault} -e=${batch_size} >> simulation.out
+        ./cmd \
+        -type=${type} \
+        -d=${fanout} \
+        -f=${fault} \
+        -e=${batch_size} \
+        -dc=${data_chunk_count} \
+        -pc=${parity_chunk_count} \
+        >> ${output_file}
 
     end=`date +%s`
     elapsed_time=$((end-start))
@@ -48,7 +65,13 @@ do
 
         fault=$(jq -n ${i}/100) 
         echo -n "Fanout ${fanout} Fault ${fault} => "
-        ./cmd -type=${type} -d=${fanout} -f=${fault} -e=${batch_size} >> simulation.out
+        ./cmd \
+        -type=${type} \
+        -d=${fanout} \
+        -f=${fault} \
+        -e=${batch_size} \
+        -dc=${data_chunk_count} \
+        >> ${output_file}
 
     end=`date +%s`
     elapsed_time=$((end-start))

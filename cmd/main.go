@@ -15,14 +15,16 @@ func main() {
 	fanOutF := flag.Int("d", 0, "fanout")
 	faultF := flag.Float64("f", 0.0, "faulty node percent between 0 and 1")
 	experimentCountF := flag.Int("e", 0, "experiment count")
+	dataChunkF := flag.Int("dc", 0, "data chunk count")
+	parityChunkF := flag.Int("pc", 0, "parity chunk count")
 	flag.Parse()
 
 	nodeCount := 4096
 	fanout := *fanOutF
 	faultPercent := *faultF
 
-	dataChunkCount := 96
-	parityChunkCount := 160
+	dataChunkCount := *dataChunkF
+	parityChunkCount := *parityChunkF
 
 	//log.Println(*dissmeinationType)
 
@@ -64,7 +66,7 @@ func main() {
 	for i := range stats {
 		totalRoundCount += stats[i].Round
 		totalDeliveryPercent += (float64(stats[i].MessageDeliveryCount) / float64(nodeCount))
-		totalForwardCount += float64(stats[i].DeliveredChunkCount) / float64(nodeCount-faultyNodeCount)
+		totalForwardCount += float64(stats[i].ForwardedChunkCount) / float64(nodeCount-faultyNodeCount)
 		totalReceivedCount += float64(stats[i].ReceivedChunkCount) / float64(nodeCount)
 
 		if stats[i].MessageDeliveryCount == 0 {
